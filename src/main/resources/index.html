@@ -3,9 +3,12 @@
 
 <head>
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="main.css" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <script data-require="jquery@*" data-semver="3.1.1" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <style>
-        #container {border: 1px solid brown;}
+        #container {border: 1px solid brown;  display: flex; flex-direction: column;}
         H1 {float: left;}
 
         .button{
@@ -26,34 +29,166 @@
         .receipt {
             background-color: #eee;
             margin-bottom: 5px;
+            display: flex;
+        }
+
+        .table-header {
+            display: flex;
+        }
+
+        .table-head {
+            flex:1;
+            text-align: center;
+        }
+
+        .table-col-element {
+            flex:1;
+            text-align: center;
+        }
+
+        .add-receipt-container {
+
         }
 
     </style>
-    <script>
+    <script type="text/javascript">
         // This is the idiomatic way to ensure that JQuery does not
         // execute until the page has loaded
-        $(function(){
+        function fetchReceipts(){
             const api = ""; // <- do not need a root api URL if this page is served directly by the API
-
+            $( "#receiptList" ).empty();
             $.getJSON(api+"/receipts", function(receipts){
-                for(var i=0; i < receipts.length; i++) {
-                    var receipt = receipts[i];
-                    $(`<div class="receipt">${receipt.merchantName}<div><span class="receiptTag">t1</span></div></div>`)
-                        .appendTo($("#receiptList"));
-                }
+                // Fetching all tags
+                $.getJSON(api+"/tags/fetch-all-tags", function(tags){
+                    for(var i=0; i < receipts.length; i++) {
+                        var receipt = receipts[i];
 
-            })
-        })
+                        var idNameForTagsListElement = "tags-list-" + receipt.id;
+                        var idAndReceiptId = idNameForTagsListElement + ',' + receipt.id;
+                        $(`<div class="receipt"><div class="table-col-element">${receipt.created}</div><div class="merchant table-col-element">${receipt.merchantName}</div><div class="amount table-col-element">${receipt.value}</div><div class="table-col-element" id=${idNameForTagsListElement}><button class="add-tag" onclick="addTag('${idAndReceiptId}')">Add +</button></div></div>`)
+                            .appendTo($("#receiptList"));
+
+                        for(var j=0; j < tags.length; j++) {
+                            if (tags[j].receipt_id === receipt.id) {
+                                var idName = "#tags-list-" + receipt.id;
+
+                                var tagId = "tags-list-" + receipt.id + tags[j].tag;
+                                var impData = tags[j].tag + ',' + receipt.id;
+
+                                $(`<div class="tagValue tags label label-primary" id=${tagId} onclick="removeTag('${impData}')">${tags[j].tag}</div>`).appendTo(idName);
+
+                            }
+                        }
+                    }
+                });
+
+            });
+            setTimeout(function() {
+                hideReceiptForm();
+            }, 100);
+        }
+
+        function showReceiptForm() {
+            $(".add-receipt-container").show();
+        }
+
+        function hideReceiptForm() {
+            $('#merchant').val('');
+            $('#amount').val('');
+            $(".add-receipt-container").hide();
+        }
+
+        function saveReceipt() {
+            var receiptData = {
+                "merchant": $('#merchant').val(),
+                "amount": $('#amount').val()
+            };
+            if($('#merchant').val() == "") {
+                $(".not-empty-warning").show();
+            } else {
+                $(".not-empty-warning").hide();
+                $.ajax({
+                    type: 'POST',
+                    url: '/receipts',
+                    data: JSON.stringify(receiptData),
+                    contentType: "application/json",
+                    dataType: 'json',
+                    success: fetchReceipts
+                });
+            }
+        }
+
+        function createTag(idWhereToAdd) {
+            removeTag($('.tag_input')[0].value + ',' + idWhereToAdd);
+        }
+
+        function addTag(idAndReceiptId) {
+            $('.tag_input').remove();
+            var node = document.createElement("input");
+            node.className= 'tag_input';
+            $('#' + idAndReceiptId.split(',')[0]).append(node);
+
+            var elem = document.getElementsByClassName('tag_input');
+            elem[0].addEventListener('keypress', function(e){
+                if (e.keyCode === 13) {
+                    createTag(idAndReceiptId.split(',')[1]);
+                }
+            });
+        }
+
+        function removeTag(tag) {
+            $.ajax({
+                type: 'PUT',
+                url: '/tags/' + tag.split(',')[0],
+                data: tag.split(',')[1],
+                contentType: "application/json",
+                success : fetchReceipts
+            });
+        }
+
+        fetchReceipts();
+        hideReceiptForm();
     </script>
 </head>
-
 <body>
-<DIV id="container">
-    <h1>My receipts</h1>
-    <div class="button">+</div>
-    <div id="receiptList">
-    </div>
-</DIV>
-</body>
+    <DIV id="container">
+        <div>
+            <h1>My receipts</h1>
+            <button class="button" id="add-receipt" onclick="showReceiptForm()">+</button>
+        </div>
 
+        <div class="add-receipt-container">
+            <input title="Merchant" id="merchant"/><span class="not-empty-warning"> Should not be empty !</span>
+            <input title="Amount" id="amount"/>
+            <button id="cancel-receipt" onclick="hideReceiptForm()">
+                Cancel
+            </button>
+            <button id="save-receipt" onclick="saveReceipt()">
+                Save
+            </button>
+        </div>
+
+        <div class="table-header">
+            <div class="table-head">
+                Time
+            </div>
+            <div class="table-head">
+                Merchant
+            </div>
+            <div class="table-head">
+                $
+            </div>
+            <div class="table-head">
+                Tags
+            </div>
+        </div>
+
+        <div id="receiptList">
+        </div>
+
+    </DIV>
+</body>
 </html>
+
+
+<!--<div class="receipt">${receipt.merchantName}<div><span class="receiptTag">t1</span></div></div>-->

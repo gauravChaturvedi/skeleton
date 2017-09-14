@@ -5,10 +5,13 @@ package generated;
 
 
 import generated.tables.Receipts;
+import generated.tables.Tags;
 import generated.tables.records.ReceiptsRecord;
+import generated.tables.records.TagsRecord;
 
 import javax.annotation.Generated;
 
+import org.jooq.ForeignKey;
 import org.jooq.Identity;
 import org.jooq.UniqueKey;
 import org.jooq.impl.AbstractKeys;
@@ -44,6 +47,7 @@ public class Keys {
 	// FOREIGN KEY definitions
 	// -------------------------------------------------------------------------
 
+	public static final ForeignKey<TagsRecord, ReceiptsRecord> CONSTRAINT_2 = ForeignKeys0.CONSTRAINT_2;
 
 	// -------------------------------------------------------------------------
 	// [#1459] distribute members to avoid static initialisers > 64kb
@@ -55,5 +59,9 @@ public class Keys {
 
 	private static class UniqueKeys0 extends AbstractKeys {
 		public static final UniqueKey<ReceiptsRecord> CONSTRAINT_F = createUniqueKey(Receipts.RECEIPTS, Receipts.RECEIPTS.ID);
+	}
+
+	private static class ForeignKeys0 extends AbstractKeys {
+		public static final ForeignKey<TagsRecord, ReceiptsRecord> CONSTRAINT_2 = createForeignKey(generated.Keys.CONSTRAINT_F, Tags.TAGS, Tags.TAGS.RECEIPT_ID);
 	}
 }

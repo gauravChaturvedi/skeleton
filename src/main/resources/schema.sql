@@ -7,3 +7,10 @@ CREATE TABLE receipts (
 
   PRIMARY KEY (id)
 );
+
+CREATE TABLE tags (
+  receipt_id INT,
+  tag VARCHAR(255),
+
+  FOREIGN KEY(receipt_id) REFERENCES receipts(id)
+);
