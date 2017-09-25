@@ -1,7 +1,9 @@
 package controllers;
 
+import api.ReceiptSuggestionResponse;
 import com.google.cloud.vision.v1.*;
 import com.google.protobuf.ByteString;
+import java.math.BigDecimal;
 import java.util.Base64;
 import java.util.Collections;
 import javax.ws.rs.*;
@@ -14,7 +16,6 @@ import static java.lang.System.out;
 @Consumes(MediaType.TEXT_PLAIN)
 @Produces(MediaType.APPLICATION_JSON)
 public class ReceiptImageController {
-    //static final String apiKey = "AIzaSyAYdkyGx_Jb9CUVLLJ3sX3_s1Ej_ig3_iI";
     private final AnnotateImageRequest.Builder requestBuilder;
 
     public ReceiptImageController() {
@@ -36,13 +37,16 @@ public class ReceiptImageController {
      * }
      */
     @POST
-    public String parseReceipt(@NotEmpty String base64EncodedImage) throws Exception {
+    public ReceiptSuggestionResponse parseReceipt(@NotEmpty String base64EncodedImage) throws Exception {
         Image img = Image.newBuilder().setContent(ByteString.copyFrom(Base64.getDecoder().decode(base64EncodedImage))).build();
         AnnotateImageRequest request = this.requestBuilder.setImage(img).build();
 
         try (ImageAnnotatorClient client = ImageAnnotatorClient.create()) {
             BatchAnnotateImagesResponse responses = client.batchAnnotateImages(Collections.singletonList(request));
             AnnotateImageResponse res = responses.getResponses(0);
+
+            String merchantName = null;
+            BigDecimal amount = null;
 
             // Your Algo Here!!
             // Sort text annotations by bounding polygon.  Top-most non-decimal text is the merchant
@@ -52,9 +56,8 @@ public class ReceiptImageController {
                 out.printf("Text: %s\n", annotation.getDescription());
             }
 
-            // Not the right thing, but here for now.
-            TextAnnotation fullTextAnnotation = res.getFullTextAnnotation();
-            return fullTextAnnotation.getText();
+            //TextAnnotation fullTextAnnotation = res.getFullTextAnnotation();
+            return new ReceiptSuggestionResponse(merchantName, amount);
         }
     }
 }
